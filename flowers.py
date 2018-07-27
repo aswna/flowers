@@ -48,58 +48,66 @@ def main():
     (w1, w2, b) = train()
     print('TEST DATA')
     for test_data in TEST_DATA:
-        estimated_color = estimate_color(test_data.length, test_data.width,
-                                         w1, w2, b)
+        predicted_color = predict_color(test_data.length, test_data.width,
+                                        w1, w2, b)
         print(
-            'length = {}, width = {} => estimated color = {} ({:.2f}) <=> '
+            'length = {}, width = {} => predicted color = {} ({:.2f}) <=> '
             'expected color = {}'.format(
                 test_data.length, test_data.width,
-                to_color(estimated_color), estimated_color,
+                to_color(predicted_color), predicted_color,
                 test_data.expected_color))
 
 
 def train():
+    learning_rate = 0.02
     print('TRAINING DATA')
-
-    best_w1 = w1 = random.uniform(-10, 10)
-    best_w2 = w2 = random.uniform(-10, 10)
-    best_b = b = random.uniform(-10, 10)
-
-    min_sum_error_squared = 9999999999.9
+    w1 = random.uniform(-10, 10)
+    w2 = random.uniform(-10, 10)
+    b = random.uniform(-10, 10)
     for i in xrange(10000):
-        w1 = random.uniform(-10, 10)
-        w2 = random.uniform(-10, 10)
-        b = random.uniform(-10, 10)
-        sum_error_squared = 0.0
+        sum_error_squared = 0
         for measurement in MEASUREMENTS:
-            estimated_color = estimate_color(
+            z = w1 * measurement.length + w2 * measurement.width + b
+            # use z in predict_color?
+            predicted_color = predict_color(
                 measurement.length, measurement.width, w1, w2, b)
-            error_squared = (
-                estimated_color - color_to_number(measurement.color)) ** 2
+            target_color = color_to_number(measurement.color)
+
+            error_squared = (predicted_color - target_color) ** 2
             sum_error_squared += error_squared
-            # print(
-            #     'length = {}, width = {} => estimated color = {} ({:.2f}) <=> '
-            #     'actual color = {} [err = {}]'.format(
-            #         measurement.length, measurement.width,
-            #         to_color(estimated_color), estimated_color,
-            #         measurement.color, error_squared))
-        if sum_error_squared < min_sum_error_squared:
-            min_sum_error_squared = sum_error_squared
-            best_w1 = w1
-            best_w2 = w2
-            best_b = b
-            print(
-                'Found better parameters: w1 = {}, w2 = {}, b = {} [{}]'
-                .format(w1, w2, b, min_sum_error_squared))
-    return (best_w1, best_w2, best_b)
+
+            derror_squared_dpredicted_color = 2 * (predicted_color - target_color)
+
+            dpredicted_color_dz = sigmoid(z) * (1 - sigmoid(z))
+
+            dz_dw1 = measurement.length
+            dz_dw2 = measurement.width
+            dz_db = 1
+
+            derror_squared_dw1 = derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw1
+            derror_squared_dw2 = derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw2
+            derror_squared_db = derror_squared_dpredicted_color * dpredicted_color_dz * dz_db
+
+            w1 -= learning_rate * derror_squared_dw1
+            w2 -= learning_rate * derror_squared_dw2
+            b -= learning_rate * derror_squared_db
+
+        if i % 1000 == 0:
+            print('sum_error_squared = {}'.format(sum_error_squared))
+    return (w1, w2, b)
 
 
-def estimate_color(length, width, w1, w2, b):
+def predict_color(length, width, w1, w2, b):
     return sigmoid(w1 * length + w2 * width + b)
 
 
 def sigmoid(x):
     return 1 / (1 + math.exp(-x))
+
+
+def slope_of_sigmoid_numerically(x):
+    step_size = 0.01
+    return (sigmoid(x + step_size) - sigmoid(x)) / step_size
 
 
 def to_color(x):
