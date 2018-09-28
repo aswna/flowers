@@ -46,16 +46,7 @@ TEST_DATA = [
 def main():
     # random.seed(12345)
     (w1, w2, b) = train()
-    print('TEST DATA')
-    for test_data in TEST_DATA:
-        predicted_color = predict_color(test_data.length, test_data.width,
-                                        w1, w2, b)
-        print(
-            'length = {}, width = {} => predicted color = {} ({:.2f}) <=> '
-            'expected color = {}'.format(
-                test_data.length, test_data.width,
-                to_color(predicted_color), predicted_color,
-                test_data.expected_color))
+    test(w1, w2, b)
 
 
 def train():
@@ -76,7 +67,8 @@ def train():
             error_squared = (predicted_color - target_color) ** 2
             sum_error_squared += error_squared
 
-            derror_squared_dpredicted_color = 2 * (predicted_color - target_color)
+            derror_squared_dpredicted_color = 2 * (predicted_color -
+                                                   target_color)
 
             dpredicted_color_dz = sigmoid(z) * (1 - sigmoid(z))
 
@@ -84,9 +76,12 @@ def train():
             dz_dw2 = measurement.width
             dz_db = 1
 
-            derror_squared_dw1 = derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw1
-            derror_squared_dw2 = derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw2
-            derror_squared_db = derror_squared_dpredicted_color * dpredicted_color_dz * dz_db
+            derror_squared_dw1 = (
+                derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw1)
+            derror_squared_dw2 = (
+                derror_squared_dpredicted_color * dpredicted_color_dz * dz_dw2)
+            derror_squared_db = (
+                derror_squared_dpredicted_color * dpredicted_color_dz * dz_db)
 
             w1 -= learning_rate * derror_squared_dw1
             w2 -= learning_rate * derror_squared_dw2
@@ -95,6 +90,19 @@ def train():
         if i % 1000 == 0:
             print('sum_error_squared = {}'.format(sum_error_squared))
     return (w1, w2, b)
+
+
+def test(w1, w2, b):
+    print('TEST DATA')
+    for test_data in TEST_DATA:
+        predicted_color = predict_color(test_data.length, test_data.width,
+                                        w1, w2, b)
+        print(
+            'length = {}, width = {} => predicted color = {} ({:.2f}) <=> '
+            'expected color = {}'.format(
+                test_data.length, test_data.width,
+                to_color(predicted_color), predicted_color,
+                test_data.expected_color))
 
 
 def predict_color(length, width, w1, w2, b):
